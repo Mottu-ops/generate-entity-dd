@@ -1,14 +1,80 @@
-# Gerador de Entity Datadog
+# 🏷️ Generate Datadog Entity
 
-Este script bash gera automaticamente o arquivo `entity.datadog.yaml` baseado nas informações do workflow de CI/CD do projeto.
+> Gerador automático de arquivos `entity.datadog.yaml` baseado em informações de workflows CI/CD
 
-## 🚀 Como Usar
+[![GitHub](https://img.shields.io/badge/GitHub-Mottu--ops-blue?logo=github)](https://github.com/Mottu-ops)
+[![Action](https://img.shields.io/badge/Action-Ready-green?logo=github-actions)](https://github.com/features/actions)
+[![Shell](https://img.shields.io/badge/Shell-Bash-orange?logo=gnu-bash)](https://www.gnu.org/software/bash/)
 
-### Pré-requisitos
+## 🚀 Duas Formas de Usar
 
-- Bash shell (Linux/macOS/WSL)
-- Projeto com arquivo de workflow em `.github/workflows/`
-- Git (opcional, para extrair URL do repositório)
+### 📱 1. GitHub Action (Recomendado)
+
+Use como uma GitHub Action reutilizável em seus workflows:
+
+```yaml
+# .github/workflows/generate-datadog-entity.yml
+name: Generate Datadog Entity
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  generate-entity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Generate Datadog Entity
+        uses: mottu-ops/generate-entity-dd@v1
+        with:
+          force: false
+          commit-and-push: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### 💻 2. Execução Local
+
+Execute diretamente na sua máquina:
+
+```bash
+# Clonar o repositório
+git clone https://github.com/mottu-ops/generate-entity-dd.git
+cd generate-entity-dd
+
+# Tornar executável
+chmod +x generate-datadog-entity.sh
+
+# Executar no seu projeto
+cp generate-datadog-entity.sh /caminho/para/seu/projeto/
+cd /caminho/para/seu/projeto/
+./generate-datadog-entity.sh
+```
+
+## 📋 GitHub Action - Inputs & Outputs
+
+### Inputs
+
+| Input | Descrição | Obrigatório | Padrão |
+|-------|-----------|-------------|--------|
+| `force` | Forçar sobrescrita do arquivo existente | Não | `false` |
+| `working-directory` | Diretório de trabalho | Não | `.` |
+| `commit-and-push` | Fazer commit e push automático do arquivo gerado | Não | `false` |
+| `commit-message` | Mensagem personalizada para o commit | Não | `chore: generate/update entity.datadog.yaml` |
+| `github-token` | Token GitHub para push (use secrets.GITHUB_TOKEN ou secrets.PAT) | Não | `''` |
+
+### Outputs
+
+| Output | Descrição |
+|--------|-----------|
+| `file-generated` | Se o arquivo foi gerado (`true`/`false`) |
+| `file-path` | Caminho para o arquivo gerado |
+| `project-type` | Tipo de projeto detectado |
+
+## 🔧 Script Local - Opções
 
 ### Uso Básico
 ```bash
@@ -37,89 +103,124 @@ O script **automaticamente verifica** se o arquivo `entity.datadog.yaml` já exi
 - ⚠️ **Arquivo existe**: Pula a geração e mostra aviso
 - 🔄 **Com --force**: Sobrescreve o arquivo existente
 
-## 📋 O que o Script Faz
-
-1. **Busca workflows**: Procura arquivos `.yml` e `.yaml` em `.github/workflows/`
-2. **Analisa package.json**: Se disponível, extrai informações adicionais como:
-   - Nome do projeto
-   - Versão da aplicação
-   - Framework detectado (Angular, NestJS, React, Vue)
-   - Versão do Angular (se aplicável)
-3. **Extrai informações**: Coleta dados como:
-   - `app_name` (workflow ou package.json)
-   - `namespace`
-   - `bu` (business unit)
-   - `team`
-   - `nodeVersion`/`dotnetVersion`
-   - `name` (nome do workflow)
-4. **Gera entity.datadog.yaml**: Cria o arquivo na raiz do projeto com informações combinadas
-
 ## 🔍 Tipos de Projeto Suportados
 
-O script detecta automaticamente o tipo de projeto baseado no template usado no workflow:
+### 🅰️ Angular Frontend
+- **Template**: `angular-deploy.yaml`
+- **Campos**: `app_name`, `namespace`, `bu`, `team`, `nodeVersion`, `subdomain`
+- **Detecção**: Busca por `angular-deploy` no workflow
 
-### 🅰️ Angular (Frontend)
+### 🟢 NestJS Backend
+- **Template**: `container-nodejs-kubernetes.yaml`
+- **Campos**: `app_name`, `namespace`, `bu`, `team`, `nodeVersion`
+- **Detecção**: Busca por `container-nodejs-kubernetes` no workflow
+
+### 🔵 .NET Backend
+- **Template**: `container-dotnet-kubernetes.yaml`
+- **Campos**: `app_name`, `namespace`, `bu`, `team`, `dotnetVersion`, `dotnetSln`
+- **Detecção**: Busca por `container-dotnet-kubernetes` no workflow
+
+### 🐍 Python Backend
+- **Template**: `container-python-kubernetes.yaml`
+- **Campos**: `app_name`, `namespace`, `bu`, `team`, `stack`
+- **Detecção**: Busca por `container-python-kubernetes` no workflow
+- **Arquivos Python**: Analisa `pyproject.toml` e `requirements.txt` para detectar framework e versão
+
+## 💡 Exemplos de Uso - GitHub Action
+
+### Uso Básico
 ```yaml
-jobs:
-  Pipeline:
-    uses: mottu-ops/pipeline-core/.github/workflows/angular-deploy.yaml@v2
-    with:
-      approvers: Phillipe42,oluizcarvalho
-      output_path: 'dist/binoculars-front'
-      minimum_approvals: 1
-      node_version: 18
-      datadog_service_name: 'bino'
-      subdomain: 'bino'
-      bu: 'rental'
-      namespace: 'operations'
-      team: 'operations'
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
 ```
 
-### 🟢 NestJS (API)
+### Com Sobrescrita Forçada
 ```yaml
-jobs:
-  Pipeline:
-    uses: mottu-ops/pipeline-core/.github/workflows/container-nodejs-kubernetes.yaml@v2
-    with:
-      namespace: platform
-      app_name: platform-webhook-api
-      bu: cross-bu
-      team: platform
-      nodeVersion: "22"
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
+  with:
+    force: true
 ```
 
-### 🔵 .NET (Backend)
+### Em Subdiretório
 ```yaml
-jobs:
-  Pipeline:
-    uses: mottu-ops/pipeline-core/.github/workflows/container-dotnet-kubernetes.yaml@v2
-    with:
-      dotnetSln: "mottu.sln"
-      dotnetSources: '-s "https://nuget.pkg.github.com/Mottu-ops/index.json"'
-      dotnetVersion: '8.0.x'
-      app_name: payments-backend
-      namespace: payments
-      bu: rental-bu
-      team: payments
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
+  with:
+    working-directory: './backend'
 ```
 
-### 🐍 Python (Backend)
+### Com Commit Automático
 ```yaml
-jobs:
-  Pipeline:
-    uses: mottu-ops/pipeline-core/.github/workflows/container-python-kubernetes.yaml@python-module-catalog
-    with:
-      namespace: "platform"
-      app_name: "python-full121-auto"
-      bu: "cross-bu"
-      stack: "python"
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
+  with:
+    commit-and-push: true
+    github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## 📦 Integração com package.json
+### Com PAT (Personal Access Token)
+```yaml
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
+  with:
+    commit-and-push: true
+    github-token: ${{ secrets.PAT }}
+    commit-message: "feat: add datadog entity configuration"
+```
 
+### Com Outputs
+```yaml
+- name: Generate Datadog Entity
+  id: generate
+  uses: mottu-ops/generate-entity-dd@v1
+
+- name: Check Result
+  run: |
+    echo "File generated: ${{ steps.generate.outputs.file-generated }}"
+    echo "Project type: ${{ steps.generate.outputs.project-type }}"
+    echo "File path: ${{ steps.generate.outputs.file-path }}"
+```
+
+## 🔐 Configuração de Tokens
+
+### 🎯 GITHUB_TOKEN (Recomendado)
+Para a maioria dos casos, use o token automático do GitHub:
+
+```yaml
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
+  with:
+    commit-and-push: true
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### 🔑 Personal Access Token (PAT)
+Para repositórios com proteções especiais ou workflows mais complexos:
+
+1. **Criar PAT**: Acesse GitHub → Settings → Developer settings → Personal access tokens
+2. **Permissões necessárias**: `repo` (acesso completo ao repositório)
+3. **Adicionar Secret**: No repositório, vá em Settings → Secrets and variables → Actions
+4. **Nome do Secret**: `PAT`
+
+```yaml
+- name: Generate Datadog Entity
+  uses: mottu-ops/generate-entity-dd@v1
+  with:
+    commit-and-push: true
+    github-token: ${{ secrets.PAT }}
+```
+
+### ⚙️ Configuração Git
+A action usa automaticamente as credenciais da Mottu:
+- **Email**: `tech@mottu.com.br`
+- **Nome**: `tech-mottu`
+
+## 📦 Integração Automática
+
+### Package.json (Angular/NestJS)
 O script automaticamente detecta e utiliza informações do `package.json` quando disponível:
 
-### 🔍 Detecção Automática de Framework
 ```json
 {
   "name": "my-angular-app",
@@ -131,51 +232,70 @@ O script automaticamente detecta e utiliza informações do `package.json` quand
 }
 ```
 
-### 📊 Informações Extraídas
+**Informações Extraídas:**
 - **Nome do App**: Usado como fallback se não especificado no workflow
 - **Versão**: Adicionada como tag `app-version`
-- **Framework**: Detectado automaticamente (Angular, NestJS, React, Vue)
-- **Versão do Angular**: Extraída das dependências e adicionada como tag
+- **Framework**: Detectado automaticamente (Angular, NestJS)
+- **Versão do Angular**: Extraída das dependências
 
-### 🔄 Prioridade de Informações
-1. **Workflow** (prioridade alta)
-2. **package.json** (fallback)
-3. **Valores padrão** (último recurso)
+### Pyproject.toml (Python)
+Para projetos Python, analisa `pyproject.toml` e `requirements.txt`:
+
+```toml
+[tool.poetry]
+name = "python-backend"
+version = "1.0.0"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+fastapi = "^0.104.0"
+```
+
+**Informações Extraídas:**
+- **Nome do Projeto**: Extraído do pyproject.toml
+- **Versão**: Versão da aplicação
+- **Framework**: Django, FastAPI, Flask ou Python genérico
+- **Versão do Python**: Extraída dos requisitos
+
+## 🏗️ Workflow Completo - GitHub Action
+
+```yaml
+name: Generate and Deploy Datadog Entity
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  generate-entity:
+    runs-on: ubuntu-latest
+    outputs:
+      file-generated: ${{ steps.generate.outputs.file-generated }}
+      project-type: ${{ steps.generate.outputs.project-type }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Generate Datadog Entity
+        id: generate
+        uses: mottu-ops/generate-entity-dd@v1
+        with:
+          force: ${{ github.event_name == 'workflow_dispatch' }}
+          commit-and-push: ${{ github.event_name == 'push' }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: update entity.datadog.yaml for ${{ github.repository }}"
+      
+      - name: Validate Generated File
+        if: steps.generate.outputs.file-generated == 'true'
+        run: |
+          echo "✅ Generated entity.datadog.yaml for ${{ steps.generate.outputs.project-type }} project"
+          cat entity.datadog.yaml
+```
 
 ## 📄 Exemplos de Saída
-
-### Para Projeto NestJS
-```yaml
-apiVersion: v3
-kind: service
-metadata:
-  name: platform-webhook-api
-  displayName: Platform-webhook-api API
-  description: NestJS API service platform-webhook-api managed by team platform
-  owner: platform
-  tags:
-    - namespace:platform
-    - bu:cross-bu
-    - team:platform
-    - project-type:nestjs
-    - node-version:22
-  links:
-    - name: Repository
-      type: repository
-      url: https://github.com/mottu-ops/platform-webhook-api
-    - name: CI/CD Pipeline
-      type: other
-      url: https://github.com/mottu-ops/platform-webhook-api/actions
-    - name: Documentation
-      type: documentation
-      url: https://github.com/mottu-ops/platform-webhook-api#readme
-spec:
-  type: web
-  lifecycle: production
-  tier: 2
-  language: javascript
-  dependencies: []
-```
 
 ### Para Projeto Angular
 ```yaml
@@ -193,56 +313,16 @@ metadata:
     - project-type:angular
     - node-version:18
     - angular-version:17
-    - app-version:1.2.3
     - subdomain:bino
   links:
     - name: Repository
       type: repository
-      url: https://github.com/mottu-ops/binoculars-front
-    - name: CI/CD Pipeline
-      type: other
-      url: https://github.com/mottu-ops/binoculars-front/actions
-    - name: Documentation
-      type: documentation
-      url: https://github.com/mottu-ops/binoculars-front#readme
+      url: https://github.com/mottu-ops/bino-frontend
 spec:
   type: web
   lifecycle: production
   tier: 2
-  language: typescript
-  dependencies: []
-```
-
-### Para Projeto .NET
-```yaml
-apiVersion: v3
-kind: service
-metadata:
-  name: payments-backend
-  displayName: Payments-backend Service
-  description: .NET service payments-backend managed by team payments
-  owner: payments
-  tags:
-    - namespace:payments
-    - bu:rental-bu
-    - team:payments
-    - project-type:dotnet
-    - dotnet-version:8.0.x
-  links:
-    - name: Repository
-      type: repository
-      url: https://github.com/mottu-ops/payments-backend
-    - name: CI/CD Pipeline
-      type: other
-      url: https://github.com/mottu-ops/payments-backend/actions
-    - name: Documentation
-      type: documentation
-      url: https://github.com/mottu-ops/payments-backend#readme
-spec:
-  type: web
-  lifecycle: production
-  tier: 2
-  language: csharp
+  language: javascript
   dependencies: []
 ```
 
@@ -253,24 +333,19 @@ kind: service
 metadata:
   name: python-backend
   displayName: Python-backend Service
-  description: Python service python-backend managed by team python
-  owner: python
+  description: Python service python-backend managed by team platform
+  owner: platform
   tags:
-    - namespace:python
+    - namespace:platform
     - bu:cross-bu
-    - team:python
+    - team:platform
     - project-type:python
-    - stack:python-3.9
+    - python-version:3.9
+    - python-framework:fastapi
   links:
     - name: Repository
       type: repository
       url: https://github.com/mottu-ops/python-backend
-    - name: CI/CD Pipeline
-      type: other
-      url: https://github.com/mottu-ops/python-backend/actions
-    - name: Documentation
-      type: documentation
-      url: https://github.com/mottu-ops/python-backend#readme
 spec:
   type: web
   lifecycle: production
@@ -279,93 +354,58 @@ spec:
   dependencies: []
 ```
 
-## ⚙️ Lógica de Mapeamento
+## 🔧 Desenvolvimento e Contribuição
 
-### Detecção de Tipo de Projeto
-- **Angular**: Detectado pelo template `angular-deploy.yaml`
-- **NestJS**: Detectado pelo template `container-nodejs-kubernetes.yaml`
-- **.NET**: Detectado pelo template `container-dotnet-kubernetes.yaml`
-- **Python**: Detectado pelo template `container-python-kubernetes.yaml`
+### Pré-requisitos
+- Bash shell (Linux/macOS/WSL)
+- Git
+- Projeto com workflow em `.github/workflows/`
 
-### Campos Específicos por Tipo
+### Estrutura do Projeto
+```
+generate-entity-dd/
+├── action.yml                    # Definição da GitHub Action
+├── generate-datadog-entity.sh    # Script principal
+├── README.md                     # Esta documentação
+└── examples/                     # Exemplos de uso
+```
 
-#### Angular
-- **app_name**: Extraído de `datadog_service_name`
-- **language**: `typescript`
-- **Tags extras**: `subdomain`, `node-version`
-- **Display Name**: `{nome} Frontend`
+### Testando Localmente
+```bash
+# Clonar o repositório
+git clone https://github.com/mottu-ops/generate-entity-dd.git
+cd generate-entity-dd
 
-#### NestJS
-- **app_name**: Extraído de `app_name`
-- **language**: `javascript`
-- **Tags extras**: `node-version`
-- **Display Name**: `{nome} API`
+# Tornar executável
+chmod +x generate-datadog-entity.sh
 
-#### .NET
-- **app_name**: Extraído de `app_name`
-- **language**: `csharp`
-- **Tags extras**: `dotnet-version`
-- **Display Name**: `{nome} Service`
-
-#### Python
-- **app_name**: Extraído de `app_name` (workflow) ou `name` (pyproject.toml)
-- **language**: `python`
-- **Tags extras**: `python-version`, `python-framework`, `app-version`
-- **Display Name**: `{nome} Service`
-- **Detecção de Framework**: Django, FastAPI, Flask ou Python genérico
-
-### Tipo de Serviço (`spec.type`)
-- **worker**: Se o nome contém `worker`, `job`, ou `cron`
-- **queue**: Se o nome contém `queue`, `kafka`, ou `redis`
-- **web**: Padrão para todos os tipos de projeto
-
-### Tier (`spec.tier`)
-- **1**: Para BUs críticas (`core`, `platform`, `critical`)
-- **2**: Padrão para outras BUs
-
-### Tags Automáticas
-- **namespace**: Namespace do Kubernetes
-- **bu**: Business Unit
-- **team**: Equipe responsável
-- **project-type**: Tipo do projeto (angular/nestjs/dotnet/python)
-- **node-version**: Versão do Node.js (Angular/NestJS)
-- **dotnet-version**: Versão do .NET (.NET)
-- **python-version**: Versão do Python (extraída de pyproject.toml/requirements.txt)
-- **python-framework**: Framework Python (django/fastapi/flask)
-- **angular-version**: Versão do Angular (extraída do package.json)
-- **app-version**: Versão da aplicação (extraída do package.json/pyproject.toml)
-- **subdomain**: Subdomínio (Angular)
-
-### Links Automáticos
-- **Repository**: URL do repositório Git
-- **CI/CD Pipeline**: Link para GitHub Actions
-- **Documentation**: Link para README do repositório
-
-## 🔧 Personalização
-
-Para adaptar o script para outros padrões de workflow:
-
-1. **Modificar campos de busca**: Altere as variáveis extraídas na função `find_workflow_info()`
-2. **Ajustar mapeamentos**: Modifique a lógica de `service_type` e `tier`
-3. **Adicionar validações**: Inclua novas verificações conforme necessário
+# Testar em um projeto
+cd /caminho/para/projeto/com/workflows
+/caminho/para/generate-entity-dd/generate-datadog-entity.sh --help
+/caminho/para/generate-entity-dd/generate-datadog-entity.sh
+```
 
 ## 🐛 Troubleshooting
 
 ### Erro: "No workflow files found"
-- Verifique se existe a pasta `.github/workflows/`
-- Confirme que há arquivos `.yml` ou `.yaml` na pasta
+- Verifique se existe pasta `.github/workflows/`
+- Confirme se há arquivos `.yml` ou `.yaml` na pasta
+- Verifique se os workflows usam os templates suportados
 
-### Erro: "Could not extract 'app_name'"
-- Verifique se o workflow contém o campo `app_name:`
-- Confirme que o workflow segue o padrão esperado
+### Erro: "Permission denied"
+```bash
+chmod +x generate-datadog-entity.sh
+```
 
-### Erro: "Could not extract 'bu'"
-- O script procura especificamente por workflows com campo `bu:`
-- Verifique se o workflow usa o template da Mottu
+### Arquivo não é gerado
+- Verifique se já existe `entity.datadog.yaml`
+- Use `--force` para sobrescrever
+- Verifique se o workflow contém os campos necessários
 
-## 📝 Notas
+## 📄 Licença
 
-- O script é **reutilizável** para qualquer projeto que siga o padrão de workflow da Mottu
-- Campos opcionais recebem valores padrão se não encontrados
-- O arquivo `entity.datadog.yaml` é sobrescrito a cada execução
-- Funciona tanto em repositórios Git quanto em projetos locais (com funcionalidades limitadas)
+Este projeto é licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+---
+
+**Desenvolvido com ❤️ pela equipe Mottu-ops**
